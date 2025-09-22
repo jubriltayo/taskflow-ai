@@ -6,5 +6,3 @@ import { authConfig } from "@/lib/auth";
  * This file is the entry point for authentication
  */
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
-
-export { handlers as GET, handlers as POST };
