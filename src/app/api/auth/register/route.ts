@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createUser } from "@/lib/auth-utils";
+import { createUser } from "@/lib/auth/utils";
 import { RegisterSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {

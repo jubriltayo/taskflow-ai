@@ -1,5 +1,5 @@
 import { hash, compare } from "bcryptjs";
-import { db } from "./db";
+import { db } from "@/lib/db";
 import { AuthUser } from "@/types";
 import { Prisma } from "@prisma/client";
 

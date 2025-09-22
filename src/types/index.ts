@@ -135,10 +135,9 @@ export class AppError extends Error {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
-    if (typeof Error.captureStackTrace === "function") {
+
+    if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
-    } else {
-      this.stack = new Error(message).stack;
     }
   }
 }
@@ -153,8 +152,3 @@ export interface ApiError {
   errors?: ValidationError[];
 }
 
-declare global {
-  interface ErrorConstructor {
-    captureStackTrace(targetObject: object, constructorOpt?: new (...args: unknown[]) => unknown): void;
-  }
-}
