@@ -59,7 +59,10 @@ export interface CreateCategoryInput {
   color?: string;
 }
 
-export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
+export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {
+  // This interface is intentionally empty to inherit properties from Partial<CreateCategoryInput>
+  // and can be extended in the future if specific update fields are needed.
+}
 
 // Auth/User types
 export interface AuthUser {
@@ -128,11 +131,15 @@ export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
 
-  constructor(message: string, statusCode: number, isOperational = true) {
+  constructor(message: string, statusCode = 500, isOperational = true) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
-    Error.captureStackTrace(this, this.constructor);
+    if (typeof Error.captureStackTrace === "function") {
+      Error.captureStackTrace(this, this.constructor);
+    } else {
+      this.stack = new Error(message).stack;
+    }
   }
 }
 
@@ -144,4 +151,10 @@ export interface ApiError {
   message: string;
   statusCode: number;
   errors?: ValidationError[];
+}
+
+declare global {
+  interface ErrorConstructor {
+    captureStackTrace(targetObject: object, constructorOpt?: new (...args: unknown[]) => unknown): void;
+  }
 }

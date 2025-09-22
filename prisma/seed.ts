@@ -6,8 +6,10 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Create user
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: "demo@taskflow.dev" },
+    update: {},
+    create: {
       email: "demo@taskflow.dev",
       name: "Demo User",
     },
