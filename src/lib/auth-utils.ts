@@ -1,6 +1,7 @@
 import { hash, compare } from "bcryptjs";
 import { db } from "./db";
 import { AuthUser } from "@/types";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 /**
  * Utility functions for authentication operations
@@ -31,33 +32,28 @@ export async function createUser(
   password: string,
   name?: string
 ): Promise<AuthUser> {
-  // Check if user already exists
-  const existingUser = await db.user.findUnique({
-    where: { email },
-  });
-
-  if (existingUser) {
-    throw new Error("User with this email already exists");
-  }
-
   // Hash password
   const hashedPassword = await hashPassword(password);
 
-  // Create user in database
-  const user = await db.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name: name || null,
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
-  });
-
-  return user;
+  try {
+    // Create user in database
+    const user = await db.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+      },
+    });
+    return user;
+  } catch (error) {
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Error("User with this email already exists");
+    }
+    throw error;
+  }
 }
 
 /**

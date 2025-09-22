@@ -21,8 +21,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, user }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unexpected error";
-    const isConflict =
-      typeof message === "string" && /already exists/i.test(message);
+    const isConflict = message === "User with this email already exists";
     return NextResponse.json(
       {
         success: false,
