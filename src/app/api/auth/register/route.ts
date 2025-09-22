@@ -1,16 +1,34 @@
 import { NextResponse } from "next/server";
 import { createUser } from "@/lib/auth-utils";
+import { RegisterSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
-  const { email, password, name } = await req.json();
-
   try {
-    const user = await createUser(email, password, name);
-    return NextResponse.json({ success: true, user });
-  } catch (error: any) {
+    const json = await req.json();
+    const parsed = RegisterSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request",
+          issues: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+    const { email, password, name } = parsed.data;
+    const user = await createUser(email, password, name ?? undefined);
+    return NextResponse.json({ success: true, user }, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unexpected error";
+    const isConflict =
+      typeof message === "string" && /already exists/i.test(message);
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 400 }
+      {
+        success: false,
+        error: isConflict ? "User already exists" : "Internal server error",
+      },
+      { status: isConflict ? 409 : 500 }
     );
   }
 }
