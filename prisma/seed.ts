@@ -1,4 +1,5 @@
 import { PrismaClient, TaskStatus, TaskPriority } from "@prisma/client";
+import { hashPassword } from "@/lib/auth-utils";
 
 const prisma = new PrismaClient();
 
@@ -6,12 +7,14 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Create user
+  const hashedPassword = await hashPassword("demo123");
   const user = await prisma.user.upsert({
     where: { email: "demo@taskflow.dev" },
     update: {},
     create: {
       email: "demo@taskflow.dev",
       name: "Demo User",
+      password: hashedPassword,
     },
   });
 
