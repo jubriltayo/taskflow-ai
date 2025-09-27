@@ -6,13 +6,9 @@ import { TaskStatus, TaskPriority } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("📥 Task creation request received");
-
     const session = await getServerSession();
-    console.log("🔐 Session:", session?.user?.id);
 
     if (!session?.user?.id) {
-      console.log("❌ Unauthorized access attempt");
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -20,7 +16,6 @@ export async function POST(request: NextRequest) {
     }
 
     const json = await request.json();
-    console.log("📋 Request data:", json);
 
     // Handle empty categoryId - convert to null
     const processedData = {
@@ -28,12 +23,9 @@ export async function POST(request: NextRequest) {
       categoryId: json.categoryId === "" ? null : json.categoryId,
     };
 
-    console.log("🔄 Processed data:", processedData);
-
     const parsed = TaskSchema.safeParse(processedData);
 
     if (!parsed.success) {
-      console.log("❌ Validation errors:", parsed.error.issues);
       return NextResponse.json(
         {
           success: false,
@@ -56,10 +48,6 @@ export async function POST(request: NextRequest) {
       });
 
       if (!category) {
-        console.log(
-          "❌ Category not found or doesn't belong to user:",
-          categoryId
-        );
         return NextResponse.json(
           { success: false, error: "Category not found" },
           { status: 404 }
@@ -67,7 +55,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("✅ Creating task in database...");
     const task = await db.task.create({
       data: {
         title: title.trim(),
@@ -83,7 +70,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("✅ Task created successfully:", task.id);
     return NextResponse.json({ success: true, data: task }, { status: 201 });
   } catch (error) {
     console.error("❌ Task creation error:", error);

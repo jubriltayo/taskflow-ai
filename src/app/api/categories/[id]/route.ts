@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { UpdateTaskSchema } from "@/lib/validation";
+import { CategorySchema } from "@/lib/validation";
 
 interface RouteParams {
   params: { id: string };
@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const json = await request.json();
-    const parsed = UpdateTaskSchema.safeParse({ ...json, id: params.id });
+    const parsed = CategorySchema.safeParse(json);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -32,52 +32,57 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify task belongs to user
-    const existingTask = await db.task.findFirst({
+    // Verify category belongs to user
+    const existingCategory = await db.category.findFirst({
       where: {
         id: params.id,
         userId: session.user.id,
       },
     });
 
-    if (!existingTask) {
+    if (!existingCategory) {
       return NextResponse.json(
-        { success: false, error: "Task not found" },
+        { success: false, error: "Category not found" },
         { status: 404 }
       );
     }
 
-    // Verify category belongs to user if provided
-    if (json.categoryId) {
-      const category = await db.category.findFirst({
-        where: {
-          id: json.categoryId,
-          userId: session.user.id,
+    const { name, color } = parsed.data;
+
+    // Check if category name already exists for this user (excluding current category)
+    const duplicateCategory = await db.category.findFirst({
+      where: {
+        userId: session.user.id,
+        name: name.trim(),
+        NOT: {
+          id: params.id,
         },
-      });
-
-      if (!category) {
-        return NextResponse.json(
-          { success: false, error: "Category not found" },
-          { status: 404 }
-        );
-      }
-    }
-
-    const task = await db.task.update({
-      where: { id: params.id },
-      data: {
-        ...json,
-        dueDate: json.dueDate ? new Date(json.dueDate) : null,
-      },
-      include: {
-        category: true,
       },
     });
 
-    return NextResponse.json({ success: true, data: task });
+    if (duplicateCategory) {
+      return NextResponse.json(
+        { success: false, error: "Category name already exists" },
+        { status: 409 }
+      );
+    }
+
+    const category = await db.category.update({
+      where: { id: params.id },
+      data: {
+        name: name.trim(),
+        color: color || "#6366f1",
+      },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true, data: category });
   } catch (error) {
-    console.error("Task update error:", error);
+    console.error("Category update error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
@@ -96,31 +101,48 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify task belongs to user
-    const existingTask = await db.task.findFirst({
+    // Verify category belongs to user
+    const existingCategory = await db.category.findFirst({
       where: {
         id: params.id,
         userId: session.user.id,
       },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
     });
 
-    if (!existingTask) {
+    if (!existingCategory) {
       return NextResponse.json(
-        { success: false, error: "Task not found" },
+        { success: false, error: "Category not found" },
         { status: 404 }
       );
     }
 
-    await db.task.delete({
+    // Prevent deletion if category has tasks
+    if (existingCategory._count.tasks > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Cannot delete category with existing tasks. Please reassign or delete the tasks first.",
+        },
+        { status: 400 }
+      );
+    }
+
+    await db.category.delete({
       where: { id: params.id },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Task deleted successfully",
+      message: "Category deleted successfully",
     });
   } catch (error) {
-    console.error("Task deletion error:", error);
+    console.error("Category deletion error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

@@ -1,22 +1,25 @@
+import type React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import Header from "@/components/layout/Header";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "TaskFlow",
-  description: "AI-enhanced task manager for focused productivity",
+  title: "TaskFlow - Professional Task Management",
+  description: "Elegant task management for focused productivity",
 };
 
 export default function RootLayout({
@@ -25,13 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans antialiased">
         <SessionProvider>
-          <Header />
-          <main>{children}</main>
+          <div className="min-h-screen bg-background">
+            <Header />
+            <main className="relative">{children}</main>
+          </div>
         </SessionProvider>
       </body>
     </html>

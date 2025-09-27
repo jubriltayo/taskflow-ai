@@ -14,7 +14,7 @@ export interface UserWithTasks extends User {
 }
 
 export interface TaskWithDetails extends Task {
-  user: User;
+  user?: User;
   category: Category | null;
 }
 
@@ -64,6 +64,11 @@ export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {
   // and can be extended in the future if specific update fields are needed.
 }
 
+export interface ServerActionResponse {
+  success: boolean;
+  error?: string;
+}
+
 // Auth/User types
 export interface AuthUser {
   id: string;
@@ -102,9 +107,13 @@ export interface SortOptions {
 // Component props
 export interface TaskCardProps {
   task: TaskWithDetails;
-  onUpdate: (taskId: string, updates: UpdateTaskInput) => Promise<void>;
-  onDelete: (taskId: string) => Promise<void>;
+  onUpdate: (
+    taskId: string,
+    updates: UpdateTaskInput
+  ) => Promise<ServerActionResponse>;
+  onDelete: (taskId: string) => Promise<ServerActionResponse>;
 }
+
 
 export interface CategoryBadgeProps {
   category: Category;
