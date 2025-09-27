@@ -20,13 +20,18 @@ export const authConfig: NextAuthConfig = {
         }
 
         try {
+          const email = String(credentials.email).toLowerCase().trim();
+
           const user = await db.user.findUnique({
-            where: { email: credentials.email.toLowerCase().trim() },
+            where: { email },
           });
 
           if (!user?.password) return null;
 
-          const isValid = await compare(credentials.password as string, user.password);
+          const isValid = await compare(
+            String(credentials.password),
+            user.password
+          );
           if (!isValid) return null;
 
           return {
