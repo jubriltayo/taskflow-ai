@@ -3,12 +3,12 @@ import { getServerSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { UpdateTaskSchema } from "@/lib/validation";
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getServerSession();
 
     if (!session?.user?.id) {
@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const json = await request.json();
-    const parsed = UpdateTaskSchema.safeParse({ ...json, id: params.id });
+    const parsed = UpdateTaskSchema.safeParse({ ...json, id: id }); 
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Verify task belongs to user
     const existingTask = await db.task.findFirst({
       where: {
-        id: params.id,
+        id: id, 
         userId: session.user.id,
       },
     });
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const task = await db.task.update({
-      where: { id: params.id },
+      where: { id: id }, 
       data: {
         ...json,
         dueDate: json.dueDate ? new Date(json.dueDate) : null,
@@ -85,8 +85,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getServerSession();
 
     if (!session?.user?.id) {
@@ -99,7 +103,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Verify task belongs to user
     const existingTask = await db.task.findFirst({
       where: {
-        id: params.id,
+        id: id, 
         userId: session.user.id,
       },
     });
@@ -112,7 +116,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     await db.task.delete({
-      where: { id: params.id },
+      where: { id: id }, 
     });
 
     return NextResponse.json({

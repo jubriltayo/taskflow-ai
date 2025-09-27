@@ -3,12 +3,12 @@ import { getServerSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { CategorySchema } from "@/lib/validation";
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getServerSession();
 
     if (!session?.user?.id) {
@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Verify category belongs to user
     const existingCategory = await db.category.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
       },
     });
@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         userId: session.user.id,
         name: name.trim(),
         NOT: {
-          id: params.id,
+          id: id,
         },
       },
     });
@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const category = await db.category.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: name.trim(),
         color: color || "#6366f1",
@@ -90,8 +90,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
     const session = await getServerSession();
 
     if (!session?.user?.id) {
@@ -104,7 +108,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Verify category belongs to user
     const existingCategory = await db.category.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
       },
       include: {
@@ -134,7 +138,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     await db.category.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({
