@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Category } from "@prisma/client";
+import type { Category } from "@prisma/client";
 
 interface CreateTaskFormProps {
   categories: Category[];
@@ -28,7 +30,7 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
     description: "",
     priority: "MEDIUM",
     dueDate: "",
-    categoryId: "", // Keep as empty string for "no category"
+    categoryId: "no-category",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,8 +39,6 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
     setError("");
 
     try {
-      console.log("Submitting task data:", formData);
-
       const requestData = {
         title: formData.title,
         description: formData.description,
@@ -46,10 +46,9 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
         dueDate: formData.dueDate
           ? new Date(formData.dueDate).toISOString()
           : null,
-        categoryId: formData.categoryId || null, // Convert empty string to null
+        categoryId:
+          formData.categoryId === "no-category" ? null : formData.categoryId,
       };
-
-      console.log("Sending request data:", requestData);
 
       const response = await fetch("/api/tasks", {
         method: "POST",
@@ -59,10 +58,7 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
         body: JSON.stringify(requestData),
       });
 
-      console.log("Response status:", response.status);
-
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (!response.ok) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
@@ -75,7 +71,7 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
           description: "",
           priority: "MEDIUM",
           dueDate: "",
-          categoryId: "",
+          categoryId: "no-category",
         });
 
         // Refresh the page to show new task
@@ -166,8 +162,7 @@ export function CreateTaskForm({ categories }: CreateTaskFormProps) {
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No category</SelectItem>{" "}
-              {/* Empty string for no category */}
+              <SelectItem value="no-category">No category</SelectItem>{" "}
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}

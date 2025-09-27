@@ -26,7 +26,6 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 export async function connectToDatabase() {
   try {
     await db.$connect();
-    console.log("✅ Connected to database successfully");
   } catch (error) {
     console.error("❌ Database connection failed:", error);
     throw error;
@@ -39,7 +38,6 @@ export async function connectToDatabase() {
 export async function disconnectFromDatabase() {
   try {
     await db.$disconnect();
-    console.log("✅ Disconnected from database successfully");
   } catch (error) {
     console.error("❌ Database disconnection failed:", error);
   }

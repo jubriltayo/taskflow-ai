@@ -1,7 +1,9 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
-import { TaskWithDetails } from "@/types";
+import type { TaskWithDetails } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,16 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Category } from "@prisma/client";
+import type { Category } from "@prisma/client";
 
 interface EditTaskDialogProps {
   task: TaskWithDetails;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (taskId: string, updates: any) => Promise<void>;
+  onSave: (
+    taskId: string,
+    updates: any
+  ) => Promise<{ success: boolean; error?: string }>;
   categories?: Category[];
 }
-
 export function EditTaskDialog({
   task,
   open,
@@ -73,7 +77,7 @@ export function EditTaskDialog({
     setError("");
 
     try {
-      await onSave(task.id, {
+      const result = await onSave(task.id, {
         title: formData.title,
         description: formData.description,
         status: formData.status,
@@ -81,7 +85,13 @@ export function EditTaskDialog({
         dueDate: formData.dueDate || null,
         categoryId: formData.categoryId === "none" ? null : formData.categoryId,
       });
-      onOpenChange(false);
+
+      // FIX: Remove the truthiness check since we're guaranteed to have a result
+      if (result.success) {
+        onOpenChange(false);
+      } else if (result.error) {
+        setError(result.error);
+      }
     } catch (error) {
       console.error("Error updating task:", error);
       setError(

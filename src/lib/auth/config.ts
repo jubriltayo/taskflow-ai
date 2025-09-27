@@ -8,46 +8,26 @@ export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(db),
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "credentials",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "john@example.com",
-        },
-        password: {
-          label: "Password",
-          type: "password",
-        },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error("Email and password are required");
-          }
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
 
+        try {
           const user = await db.user.findUnique({
-            where: {
-              email: credentials.email as string,
-            },
+            where: { email: credentials.email.toLowerCase().trim() },
           });
 
-          if (!user) {
-            throw new Error("Invalid email or password");
-          }
+          if (!user?.password) return null;
 
-          if (!user.password) {
-            throw new Error("Invalid authentication method");
-          }
-
-          const isValid = await compare(
-            credentials.password as string,
-            user.password
-          );
-
-          if (!isValid) {
-            throw new Error("Invalid email or password");
-          }
+          const isValid = await compare(credentials.password as string, user.password);
+          if (!isValid) return null;
 
           return {
             id: user.id,
@@ -61,51 +41,18 @@ export const authConfig: NextAuthConfig = {
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
-  },
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
-    error: "/auth/error",
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        console.log("🔐 JWT token:", token);
-      }
+      if (user) token.id = user.id;
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-      }
+      if (token?.id) session.user.id = token.id as string;
       return session;
     },
-    async redirect({ url, baseUrl }) {
-      // Redirect to dashboard after successful login
-      if (url.startsWith("/login") || url === baseUrl) {
-        return `${baseUrl}/dashboard`;
-      }
-      // Allow relative callback URLs
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      }
-      // Allow callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) {
-        return url;
-      }
-      return baseUrl;
-    },
   },
-  events: {
-    async signIn({ user }) {
-      console.log(`✅ User signed in: ${user.email}`);
-    },
-    async signOut() {
-      console.log(`👋 User signed out`);
-    },
-  },
-  debug: process.env.NODE_ENV === "development",
 };

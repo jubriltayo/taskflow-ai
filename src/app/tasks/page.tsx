@@ -1,18 +1,30 @@
+// app/tasks/page.tsx
 import { getServerSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { TasksList } from "@/components/tasks/TasksList";
 import { CreateTaskForm } from "@/components/tasks/CreateTaskForm";
-import { TaskStatus, TaskPriority } from "@prisma/client";
+import { CategoryManager } from "@/components/categories/CategoryManager";
+import { revalidatePath } from "next/cache";
+import type { TaskWithDetails } from "@/types";
 
-// Server action for updating tasks
-async function updateTask(taskId: string, updates: any) {
+// Define the return type for server actions
+interface ServerActionResponse {
+  success: boolean;
+  error?: string;
+}
+
+// Server action for updating tasks - FIXED VERSION
+async function updateTask(
+  taskId: string,
+  updates: any
+): Promise<ServerActionResponse> {
   "use server";
 
   try {
     const session = await getServerSession();
     if (!session?.user) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "Unauthorized" };
     }
 
     // Verify task belongs to user
@@ -24,7 +36,7 @@ async function updateTask(taskId: string, updates: any) {
     });
 
     if (!existingTask) {
-      throw new Error("Task not found");
+      return { success: false, error: "Task not found" };
     }
 
     // Verify category belongs to user if provided
@@ -37,7 +49,7 @@ async function updateTask(taskId: string, updates: any) {
       });
 
       if (!category) {
-        throw new Error("Category not found");
+        return { success: false, error: "Category not found" };
       }
     }
 
@@ -58,31 +70,32 @@ async function updateTask(taskId: string, updates: any) {
       }
     });
 
-    const task = await db.task.update({
+    await db.task.update({
       where: { id: taskId },
       data: updateData,
-      include: {
-        category: true,
-      },
     });
 
-    console.log("✅ Task updated successfully:", task.id);
+    console.log("✅ Task updated successfully:", taskId);
+
+    revalidatePath("/tasks");
+    return { success: true };
   } catch (error) {
     console.error("❌ Task update error:", error);
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
   }
-
-  redirect("/tasks");
 }
 
-// Server action for deleting tasks - DIRECT DATABASE OPERATION
-async function deleteTask(taskId: string) {
+// Server action for deleting tasks - FIXED VERSION
+async function deleteTask(taskId: string): Promise<ServerActionResponse> {
   "use server";
 
   try {
     const session = await getServerSession();
     if (!session?.user) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "Unauthorized" };
     }
 
     // Verify task belongs to user
@@ -94,7 +107,7 @@ async function deleteTask(taskId: string) {
     });
 
     if (!existingTask) {
-      throw new Error("Task not found");
+      return { success: false, error: "Task not found" };
     }
 
     await db.task.delete({
@@ -102,12 +115,16 @@ async function deleteTask(taskId: string) {
     });
 
     console.log("✅ Task deleted successfully:", taskId);
+
+    revalidatePath("/tasks");
+    return { success: true };
   } catch (error) {
     console.error("❌ Task deletion error:", error);
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
   }
-
-  redirect("/tasks");
 }
 
 export default async function TasksPage() {
@@ -128,9 +145,16 @@ export default async function TasksPage() {
     }),
     db.category.findMany({
       where: { userId: session.user.id },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
+
+  const tasksWithDetails = tasks as unknown as TaskWithDetails[];
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -142,18 +166,25 @@ export default async function TasksPage() {
         </p>
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* Three-column layout */}
+      <div className="grid lg:grid-cols-4 gap-8">
         {/* Create Task Form - Left Sidebar */}
         <div className="lg:col-span-1">
-          <div className="sticky top-6">
-            <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
-            <CreateTaskForm categories={categories} />
+          <div className="sticky top-6 space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
+              <CreateTaskForm categories={categories} />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Manage Categories</h2>
+              <CategoryManager categories={categories} />
+            </div>
           </div>
         </div>
 
         {/* Tasks List - Main Content */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">
               Your Tasks ({tasks.length})
@@ -161,7 +192,7 @@ export default async function TasksPage() {
           </div>
 
           <TasksList
-            tasks={tasks}
+            tasks={tasksWithDetails}
             onTaskUpdate={updateTask}
             onTaskDelete={deleteTask}
           />
