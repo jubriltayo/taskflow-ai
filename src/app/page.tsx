@@ -26,7 +26,7 @@ export default async function HomePage() {
           </div>
 
           <p className="mx-auto mb-12 max-w-2xl text-xl leading-relaxed text-muted-foreground">
-            Transform your productivity with TaskFlow's sophisticated approach
+            Transform your productivity with TaskFlow&apos;s sophisticated approach
             to task organization. Clean, focused, and beautifully designed for
             the modern professional.
           </p>

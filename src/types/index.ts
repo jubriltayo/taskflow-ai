@@ -24,6 +24,24 @@ export interface CategoryWithTasks extends Category {
   _count: { tasks: number };
 }
 
+// Task operation types
+export interface TaskUpdateInput {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  dueDate?: string | null;
+  categoryId?: string | null;
+}
+
+export interface TaskCreateInput {
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  dueDate?: string | null;
+  categoryId?: string | null;
+}
+
 // API Response types
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -59,10 +77,10 @@ export interface CreateCategoryInput {
   color?: string;
 }
 
-export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {
+// export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {
   // This interface is intentionally empty to inherit properties from Partial<CreateCategoryInput>
   // and can be extended in the future if specific update fields are needed.
-}
+// }
 
 export interface ServerActionResponse {
   success: boolean;

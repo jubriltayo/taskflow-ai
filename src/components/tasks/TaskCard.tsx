@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { TaskWithDetails } from "@/types";
+import type { TaskWithDetails, TaskUpdateInput } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,11 +22,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TaskStatus } from "@prisma/client";
 
 interface TaskCardProps {
   task: TaskWithDetails;
-  onUpdate: (taskId: string, updates: any) => Promise<void>;
-  onDelete: (taskId: string) => Promise<void>;
+  onUpdate: (
+    taskId: string,
+    updates: TaskUpdateInput
+  ) => Promise<{ success: boolean; error?: string }>;
+  onDelete: (taskId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
@@ -34,7 +38,7 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: TaskStatus) => {
     setStatusLoading(newStatus);
     try {
       const result = await onUpdate(task.id, { status: newStatus });
@@ -49,11 +53,14 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   };
 
   const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+
     setIsDeleting(true);
     try {
       const result = await onDelete(task.id);
       if (!result.success && result.error) {
         console.error("Error deleting task:", result.error);
+        // You could show a toast notification here
       }
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -127,7 +134,9 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
               <button
                 onClick={() =>
                   handleStatusChange(
-                    task.status === "COMPLETED" ? "TODO" : "COMPLETED"
+                    task.status === "COMPLETED"
+                      ? TaskStatus.TODO
+                      : TaskStatus.COMPLETED
                   )
                 }
                 className="mt-1 flex-shrink-0 transition-colors hover:scale-105"
@@ -248,15 +257,15 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
           {task.status !== "COMPLETED" && (
             <div className="flex gap-2 pt-2">
-              {task.status !== "TODO" && (
+              {task.status !== TaskStatus.TODO && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleStatusChange("TODO")}
+                  onClick={() => handleStatusChange(TaskStatus.TODO)}
                   disabled={statusLoading !== null}
                   className="text-xs font-medium"
                 >
-                  {statusLoading === "TODO" ? (
+                  {statusLoading === TaskStatus.TODO ? (
                     <Clock className="h-3 w-3 mr-1 animate-spin" />
                   ) : (
                     <Circle className="h-3 w-3 mr-1" />
@@ -264,15 +273,15 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                   Mark as To Do
                 </Button>
               )}
-              {task.status !== "IN_PROGRESS" && (
+              {task.status !== TaskStatus.IN_PROGRESS && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleStatusChange("IN_PROGRESS")}
+                  onClick={() => handleStatusChange(TaskStatus.IN_PROGRESS)}
                   disabled={statusLoading !== null}
                   className="text-xs font-medium"
                 >
-                  {statusLoading === "IN_PROGRESS" ? (
+                  {statusLoading === TaskStatus.IN_PROGRESS ? (
                     <Clock className="h-3 w-3 mr-1 animate-spin" />
                   ) : (
                     <Play className="h-3 w-3 mr-1" />

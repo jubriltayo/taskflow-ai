@@ -1,4 +1,3 @@
-// app/tasks/page.tsx
 import { getServerSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -6,7 +5,8 @@ import { TasksList } from "@/components/tasks/TasksList";
 import { CreateTaskForm } from "@/components/tasks/CreateTaskForm";
 import { CategoryManager } from "@/components/categories/CategoryManager";
 import { revalidatePath } from "next/cache";
-import type { TaskWithDetails } from "@/types";
+import type { TaskWithDetails, TaskUpdateInput } from "@/types";
+import { TaskStatus, TaskPriority } from "@prisma/client";
 
 // Define the return type for server actions
 interface ServerActionResponse {
@@ -14,10 +14,9 @@ interface ServerActionResponse {
   error?: string;
 }
 
-// Server action for updating tasks - FIXED VERSION
 async function updateTask(
   taskId: string,
-  updates: any
+  updates: TaskUpdateInput
 ): Promise<ServerActionResponse> {
   "use server";
 
@@ -54,7 +53,14 @@ async function updateTask(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: {
+      title?: string;
+      description?: string | null;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      dueDate?: Date | null;
+      categoryId?: string | null;
+    } = {
       title: updates.title,
       description: updates.description,
       status: updates.status,
@@ -65,8 +71,9 @@ async function updateTask(
 
     // Remove undefined values
     Object.keys(updateData).forEach((key) => {
-      if (updateData[key] === undefined) {
-        delete updateData[key];
+      const typedKey = key as keyof typeof updateData;
+      if (updateData[typedKey] === undefined) {
+        delete updateData[typedKey];
       }
     });
 
@@ -88,7 +95,6 @@ async function updateTask(
   }
 }
 
-// Server action for deleting tasks - FIXED VERSION
 async function deleteTask(taskId: string): Promise<ServerActionResponse> {
   "use server";
 
