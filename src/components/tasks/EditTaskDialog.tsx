@@ -1,9 +1,7 @@
 "use client";
 
-import type React from "react";
-
 import { useState, useEffect } from "react";
-import type { TaskWithDetails } from "@/types";
+import type { TaskWithDetails, TaskUpdateInput } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Category } from "@prisma/client";
+import { Category, TaskStatus, TaskPriority } from "@prisma/client";
 
 interface EditTaskDialogProps {
   task: TaskWithDetails;
@@ -31,10 +29,11 @@ interface EditTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (
     taskId: string,
-    updates: any
+    updates: TaskUpdateInput
   ) => Promise<{ success: boolean; error?: string }>;
   categories?: Category[];
 }
+
 export function EditTaskDialog({
   task,
   open,
@@ -52,7 +51,7 @@ export function EditTaskDialog({
     dueDate: task.dueDate
       ? new Date(task.dueDate).toISOString().slice(0, 16)
       : "",
-    categoryId: task.categoryId || "none",
+    categoryId: task.categoryId || "no-category",
   });
 
   useEffect(() => {
@@ -65,9 +64,9 @@ export function EditTaskDialog({
         dueDate: task.dueDate
           ? new Date(task.dueDate).toISOString().slice(0, 16)
           : "",
-        categoryId: task.categoryId || "none",
+        categoryId: task.categoryId || "no-category",
       });
-      setError(""); // Clear error when dialog opens
+      setError("");
     }
   }, [open, task]);
 
@@ -83,10 +82,10 @@ export function EditTaskDialog({
         status: formData.status,
         priority: formData.priority,
         dueDate: formData.dueDate || null,
-        categoryId: formData.categoryId === "none" ? null : formData.categoryId,
+        categoryId:
+          formData.categoryId === "no-category" ? null : formData.categoryId,
       });
 
-      // FIX: Remove the truthiness check since we're guaranteed to have a result
       if (result.success) {
         onOpenChange(false);
       } else if (result.error) {
@@ -104,7 +103,7 @@ export function EditTaskDialog({
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (error) setError(""); // Clear error when user makes changes
+    if (error) setError("");
   };
 
   return (
@@ -113,7 +112,7 @@ export function EditTaskDialog({
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>
-            Make changes to your task here. Click save when you're done.
+            Make changes to your task here. Click save when you&apos;re done.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,16 +144,22 @@ export function EditTaskDialog({
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => handleChange("status", value)}
+                onValueChange={(value) =>
+                  handleChange("status", value as TaskStatus)
+                }
                 disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TODO">To Do</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
+                  <SelectItem value={TaskStatus.IN_PROGRESS}>
+                    In Progress
+                  </SelectItem>
+                  <SelectItem value={TaskStatus.COMPLETED}>
+                    Completed
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -163,16 +168,18 @@ export function EditTaskDialog({
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => handleChange("priority", value)}
+                onValueChange={(value) =>
+                  handleChange("priority", value as TaskPriority)
+                }
                 disabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="LOW">Low</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value={TaskPriority.LOW}>Low</SelectItem>
+                  <SelectItem value={TaskPriority.MEDIUM}>Medium</SelectItem>
+                  <SelectItem value={TaskPriority.HIGH}>High</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -201,7 +208,7 @@ export function EditTaskDialog({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No category</SelectItem>
+                  <SelectItem value="no-category">No category</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}

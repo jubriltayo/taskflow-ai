@@ -1,6 +1,6 @@
 "use client";
 
-import type { TaskWithDetails } from "@/types";
+import type { TaskWithDetails, TaskUpdateInput } from "@/types";
 import { TaskCard } from "./TaskCard";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 
@@ -8,7 +8,7 @@ interface TasksListProps {
   tasks: TaskWithDetails[];
   onTaskUpdate: (
     taskId: string,
-    updates: any
+    updates: TaskUpdateInput
   ) => Promise<{ success: boolean; error?: string }>;
   onTaskDelete: (
     taskId: string
